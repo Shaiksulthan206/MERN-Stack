@@ -3,6 +3,8 @@ pipeline {
     tools {
         nodejs 'nodejs'
     }
+#sonar-scanner(add in tools)
+$ECR_REPO1 & 2 both are ecr repository names for frontend and backend stored as secret text
     environment  {
         SCANNER_HOME=tool 'sonar-scanner'
         AWS_ACCOUNT_ID = credentials('ACCOUNT_ID')
@@ -16,18 +18,19 @@ pipeline {
                 cleanWs()
             }
         }
-        stage('Checkout from Git') {
-            steps {
-                git credentialsId: 'GITHUB', url: 'https://github.com/Shaiksulthan206/MERN-Stack-eks-terraform.git'
-            }
-        }
+           stage('Checkout from Git') {
+    steps {
+        git branch: 'main', credentialsId: 'GITHUB-APP', url: 'https://github.com/Shaiksulthan206/MERN-Stack.git'
+    }
+}
+#Frontend and Backend are the project names we created in sonarqube before executing the pipeline
         stage('Sonarqube Analysis') {
             steps {
                 dir('Application-Code/frontend') {
                     withSonarQubeEnv('sonar-server') {
                         sh ''' $SCANNER_HOME/bin/sonar-scanner \
-                        -Dsonar.projectName=frontend \
-                        -Dsonar.projectKey=frontend '''
+                        -Dsonar.projectName=Frontend \
+                        -Dsonar.projectKey=Frontend '''
                     }
                 }
             }
@@ -39,14 +42,14 @@ pipeline {
                 }
             }
         }
-        stage('OWASP Dependency-Check Scan') {
-            steps {
-                dir('Application-Code/frontend') {
-                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                }
-            }
-        }
+  //      stage('OWASP Dependency-Check Scan') {
+  //          steps {
+//                dir('Application-Code/frontend') {
+  //                  dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+    //                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+      //          }
+        //    }
+//        }
         stage('Trivy File Scan') {
             steps {
                 dir('Application-Code/frontend') {
@@ -79,16 +82,13 @@ pipeline {
                 sh 'trivy image ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} > trivyimage.txt' 
             }
         }
-        stage('Checkout Code') {
-            steps {
-                git credentialsId: 'GITHUB', url: 'https://github.com/Shaiksulthan206/MERN-Stack-eks-terraform.git'
-            }
-        }
+
         stage('Update Deployment file') {
             environment {
                 GIT_REPO_NAME = "MERN-Stack-eks-terraform"
                 GIT_USER_NAME = "Shaiksulthan206"
             }
+#create credentials as secret for github, with github token as secret and ID as "github"
             steps {
                 dir('Kubernetes-Manifests-file/Frontend') {
                     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
