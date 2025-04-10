@@ -1,7 +1,6 @@
 pipeline {
     agent any 
     tools {
-        jdk 'jdk'
         nodejs 'nodejs'
     }
     environment  {
@@ -17,18 +16,18 @@ pipeline {
                 cleanWs()
             }
         }
-        stage('Checkout from Git') {
-            steps {
-                git credentialsId: 'GITHUB', url: 'https://github.com/AmanPathak-DevOps/End-to-End-Kubernetes-Three-Tier-DevSecOps-Project.git'
-            }
-        }
+         stage('Checkout from Git') {
+    steps {
+        git branch: 'main', credentialsId: 'GITHUB-APP', url: 'https://github.com/Shaiksulthan206/MERN-Stack.git'
+    }
+}
         stage('Sonarqube Analysis') {
             steps {
                 dir('Application-Code/backend') {
                     withSonarQubeEnv('sonar-server') {
                         sh ''' $SCANNER_HOME/bin/sonar-scanner \
-                        -Dsonar.projectName=three-tier-backend \
-                        -Dsonar.projectKey=three-tier-backend '''
+                        -Dsonar.projectName=Backend \
+                        -Dsonar.projectKey=Backend '''
                     }
                 }
             }
@@ -40,14 +39,14 @@ pipeline {
                 }
             }
         }
-        stage('OWASP Dependency-Check Scan') {
-            steps {
-                dir('Application-Code/backend') {
-                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                }
-            }
-        }
+ //           stage('OWASP Dependency-Check Scan') {
+ //               steps {
+ //                   dir('Application-Code/backend') {
+ //                       dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+ //                       dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+ //                   }
+ //               }
+ //           }
         stage('Trivy File Scan') {
             steps {
                 dir('Application-Code/backend') {
@@ -80,22 +79,19 @@ pipeline {
                 sh 'trivy image ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} > trivyimage.txt' 
             }
         }
-        stage('Checkout Code') {
-            steps {
-                git credentialsId: 'GITHUB', url: 'https://github.com/AmanPathak-DevOps/End-to-End-Kubernetes-Three-Tier-DevSecOps-Project.git'
-            }
-        }
+      
         stage('Update Deployment file') {
             environment {
-                GIT_REPO_NAME = "End-to-End-Kubernetes-Three-Tier-DevSecOps-Project"
-                GIT_USER_NAME = "AmanPathak-DevOps"
+                GIT_REPO_NAME = "MERN-Stack-eks-terraform"
+                GIT_USER_NAME = "Shaiksulthan206"
             }
             steps {
                 dir('Kubernetes-Manifests-file/Backend') {
                     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                         sh '''
-                            git config user.email "aman07pathak@gmail.com"
-                            git config user.name "AmanPathak-DevOps"
+                            git config user.email "shaiksulthan206898@gmail.com"
+                            git config user.name "Shaiksulthan206"
+                            git pull origin main
                             BUILD_NUMBER=${BUILD_NUMBER}
                             echo $BUILD_NUMBER
                             imageTag=$(grep -oP '(?<=backend:)[^ ]+' deployment.yaml)
