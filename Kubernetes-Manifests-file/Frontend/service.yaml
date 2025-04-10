@@ -4,7 +4,7 @@ metadata:
   name: frontend
   namespace: three-tier
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     role: frontend
   ports:
