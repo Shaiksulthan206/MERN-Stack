@@ -3,8 +3,6 @@ pipeline {
     tools {
         nodejs 'nodejs'
     }
-#sonar-scanner(add in tools)
-$ECR_REPO1 & 2 both are ecr repository names for frontend and backend stored as secret text
     environment  {
         SCANNER_HOME=tool 'sonar-scanner'
         AWS_ACCOUNT_ID = credentials('ACCOUNT_ID')
@@ -23,7 +21,6 @@ $ECR_REPO1 & 2 both are ecr repository names for frontend and backend stored as 
         git branch: 'main', credentialsId: 'GITHUB-APP', url: 'https://github.com/Shaiksulthan206/MERN-Stack.git'
     }
 }
-#Frontend and Backend are the project names we created in sonarqube before executing the pipeline
         stage('Sonarqube Analysis') {
             steps {
                 dir('Application-Code/frontend') {
@@ -83,17 +80,21 @@ $ECR_REPO1 & 2 both are ecr repository names for frontend and backend stored as 
             }
         }
 
+    stage('Checkout Code') {
+    steps {
+        git branch: 'main', credentialsId: 'GITHUB-APP', url: 'https://github.com/Shaiksulthan206/MERN-Stack.git'
+    }
+}
         stage('Update Deployment file') {
             environment {
-                GIT_REPO_NAME = "MERN-Stack-eks-terraform"
+                GIT_REPO_NAME = "MERN-Stack"
                 GIT_USER_NAME = "Shaiksulthan206"
             }
-#create credentials as secret for github, with github token as secret and ID as "github"
             steps {
                 dir('Kubernetes-Manifests-file/Frontend') {
                     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                         sh '''
-                            git config user.email "shaiksulthan206898@gmail.com"
+                            git config user.email "shaiksulthan20698@gmail.com"
                             git config user.name "Shaiksulthan206"
                             BUILD_NUMBER=${BUILD_NUMBER}
                             echo $BUILD_NUMBER
@@ -102,7 +103,7 @@ $ECR_REPO1 & 2 both are ecr repository names for frontend and backend stored as 
                             sed -i "s/${AWS_ECR_REPO_NAME}:${imageTag}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}/" deployment.yaml
                             git add deployment.yaml
                             git commit -m "Update deployment Image to version \${BUILD_NUMBER}"
-                            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:master
+                            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
                         '''
                     }
                 }
